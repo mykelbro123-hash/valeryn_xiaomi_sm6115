@@ -56,7 +56,7 @@
 				qcom,mdss-dsi-v-top-border = <0>;
 				qcom,mdss-dsi-cmd-mode;
 				qcom,mdss-dsi-v-bottom-border = <0>;
-				qcom,mdss-dsi-panel-framerate = <60>;
+				qcom,mdss-dsi-panel-framerate = <75>;
 				qcom,mdss-dsi-panel-timings =
 					[00 21 09 09 24 23 08 08 08 03 04 00];
 				qcom,mdss-dsi-on-command =
