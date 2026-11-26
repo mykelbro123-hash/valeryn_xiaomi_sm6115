@@ -502,17 +502,24 @@ static int qcom_cpufreq_hw_read_lut(struct platform_device *pdev,
 	for (i = 0; i < lut_max_entries; i++) {
 		data = readl_relaxed(base_freq + i * lut_row_size);
 		src = (data & GENMASK(31, 30)) >> 30;
-		lval = data & GENMASK(7, 0);		if (lval == 105)
-			
-			lval = 126;
-		if (lval == 94)
-			lval = 105;
+			lval = data & GENMASK(7, 0);
 
-		core_count = CORE_COUNT_VAL(data);
+	if (lval == 105)
+		lval = 126;
+	else if (lval == 94)
+		lval = 105;
 
-		data = readl_relaxed(base_volt + i * lut_row_size);
-		volt = (data & GENMASK(11, 0)) * 1000;
-		vc = data & GENMASK(21, 16);
+	core_count = CORE_COUNT_VAL(data);
+
+	data = readl_relaxed(base_volt + i * lut_row_size);
+	volt = (data & GENMASK(11, 0)) * 1000;
+
+	if (lval == 126 && volt < 1080000)
+		volt = 1080000;
+	else if (lval == 105 && volt < 980000)
+		volt = 980000;
+
+	vc = data & GENMASK(21, 16);
 
 		if (src)
 			c->table[i].frequency = c->xo_rate * lval / 1000;
