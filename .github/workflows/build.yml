@@ -18,7 +18,7 @@ jobs:
       - name: Install Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y bc bison build-essential ccache curl flex git libssl-dev libelf-dev python3 zip unzip wget
+          sudo apt-get install -y bc bison build-essential ccache curl flex git libssl-dev libelf-dev python3 zip unzip wget gcc-aarch64-linux-gnu gcc-arm-linux-gnueabi
 
       - name: Setup Clang
         run: |
@@ -38,7 +38,9 @@ jobs:
           export ARCH=arm64
           export SUBARCH=arm64
 
-          make O=out ARCH=arm64 vendor/spes_defconfig
+          ARGS="O=out ARCH=arm64 CC=clang CLANG_TRIPLE=aarch64-linux-gnu- CROSS_COMPILE=aarch64-linux-gnu- CROSS_COMPILE_ARM32=arm-linux-gnueabi- LLVM=1 LLVM_IAS=1"
+
+          make $ARGS vendor/spes_defconfig
 
           scripts/config --file out/.config \
             -e CONFIG_KSU \
@@ -47,14 +49,7 @@ jobs:
             -e CONFIG_KPROBE_EVENTS \
             -e CONFIG_OVERLAY_FS
 
-          make -j$(nproc --all) O=out \
-            ARCH=arm64 \
-            CC=clang \
-            CLANG_TRIPLE=aarch64-linux-gnu- \
-            CROSS_COMPILE=aarch64-linux-gnu- \
-            CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
-            LLVM=1 \
-            LLVM_IAS=1
+          make -j$(nproc --all) $ARGS
 
       - name: Package AnyKernel3
         run: |
