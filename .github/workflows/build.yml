@@ -1,13 +1,10 @@
 name: Build Valeryn KSU-Next
 
 on:
+  push:
+    branches:
+      - android16
   workflow_dispatch:
-    inputs:
-      defconfig:
-        description: 'Nama defconfig di arch/arm64/configs/'
-        required: true
-        default: 'vendor/spes_defconfig'
-        type: string
 
 jobs:
   build:
@@ -41,7 +38,7 @@ jobs:
           export ARCH=arm64
           export SUBARCH=arm64
 
-          make O=out ARCH=arm64 ${{ github.event.inputs.defconfig }}
+          make O=out ARCH=arm64 vendor/spes_defconfig
 
           scripts/config --file out/.config \
             -e CONFIG_KSU \
