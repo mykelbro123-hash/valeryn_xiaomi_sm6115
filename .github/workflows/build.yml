@@ -13,7 +13,7 @@ jobs:
       - name: Checkout Source
         uses: actions/checkout@v4
         with:
-          depth: 1
+          fetch-depth: 1
 
       - name: Install Dependencies
         run: |
@@ -38,9 +38,24 @@ jobs:
           export ARCH=arm64
           export SUBARCH=arm64
 
+          if [ -f "arch/arm64/configs/vendor/citrus_defconfig" ]; then
+            DEFCONFIG="vendor/citrus_defconfig"
+          elif [ -f "arch/arm64/configs/citrus_defconfig" ]; then
+            DEFCONFIG="citrus_defconfig"
+          elif [ -f "arch/arm64/configs/vendor/chime_defconfig" ]; then
+            DEFCONFIG="vendor/chime_defconfig"
+          elif [ -f "arch/arm64/configs/vendor/bengal-perf_defconfig" ]; then
+            DEFCONFIG="vendor/bengal-perf_defconfig"
+          else
+            echo "Daftar defconfig yang tersedia:"
+            find arch/arm64/configs -type f
+            exit 1
+          fi
+
+          echo "Menggunakan defconfig: $DEFCONFIG"
           ARGS="O=out ARCH=arm64 CC=clang CLANG_TRIPLE=aarch64-linux-gnu- CROSS_COMPILE=aarch64-linux-gnu- CROSS_COMPILE_ARM32=arm-linux-gnueabi- LLVM=1 LLVM_IAS=1"
 
-          make $ARGS vendor/spes_defconfig
+          make $ARGS $DEFCONFIG
 
           scripts/config --file out/.config \
             -e CONFIG_KSU \
@@ -58,11 +73,11 @@ jobs:
           cp out/arch/arm64/boot/Image.gz-dtb AnyKernel3/ 2>/dev/null || cp out/arch/arm64/boot/Image.gz AnyKernel3/ 2>/dev/null || cp out/arch/arm64/boot/Image AnyKernel3/
           cp out/arch/arm64/boot/dtbo.img AnyKernel3/ 2>/dev/null || true
           cd AnyKernel3
-          zip -r9 ../Valeryn-SM6115-KSU-Next.zip * -x .git README.md *placeholder
+          zip -r9 ../Valeryn-POCOM3-KSU-Next.zip * -x .git README.md *placeholder
 
       - name: Upload Kernel Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Valeryn-SM6115-KSU-Next
-          path: Valeryn-SM6115-KSU-Next.zip
+          name: Valeryn-POCOM3-KSU-Next
+          path: Valeryn-POCOM3-KSU-Next.zip
           
