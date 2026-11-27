@@ -1,0 +1,76 @@
+name: Build Valeryn KSU-Next
+
+on:
+  workflow_dispatch:
+    inputs:
+      defconfig:
+        description: 'Nama defconfig di arch/arm64/configs/'
+        required: true
+        default: 'vendor/spes_defconfig'
+        type: string
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout Source
+        uses: actions/checkout@v4
+        with:
+          depth: 1
+
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bc bison build-essential ccache curl flex git libssl-dev libelf-dev python3 zip unzip wget
+
+      - name: Setup Clang
+        run: |
+          mkdir -p clang
+          CLANG_URL=$(echo "aHR0cHM6Ly9naXRodWIuY29tL1p5Q3JvbWVyWi9DbGFuZy9yZWxlYXNlcy9kb3dubG9hZC8xOS4wLjBnaXQtMjAyNDA0MjktcmVsZWFzZS9DbGFuZy0xOS4wLjBnaXQtMjAyNDA0MjkudGFyLmd6" | base64 -d)
+          wget -q "$CLANG_URL" -O clang.tar.gz
+          tar -xzf clang.tar.gz -C clang && rm clang.tar.gz
+
+      - name: Integrate KernelSU-Next
+        run: |
+          KSU_URL=$(echo "aHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL0tlcm5lbFNVLU5leHQvS2VybmVsU1UtTmV4dC9uZXh0L2tlcm5lbC9zZXR1cC5zaA==" | base64 -d)
+          curl -LSs "$KSU_URL" | bash -s next
+
+      - name: Build Kernel
+        run: |
+          export PATH="$PWD/clang/bin:$PATH"
+          export ARCH=arm64
+          export SUBARCH=arm64
+
+          make O=out ARCH=arm64 ${{ github.event.inputs.defconfig }}
+
+          scripts/config --file out/.config \
+            -e CONFIG_KSU \
+            -e CONFIG_KPROBES \
+            -e CONFIG_HAVE_KPROBES \
+            -e CONFIG_KPROBE_EVENTS \
+            -e CONFIG_OVERLAY_FS
+
+          make -j$(nproc --all) O=out \
+            ARCH=arm64 \
+            CC=clang \
+            CLANG_TRIPLE=aarch64-linux-gnu- \
+            CROSS_COMPILE=aarch64-linux-gnu- \
+            CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
+            LLVM=1 \
+            LLVM_IAS=1
+
+      - name: Package AnyKernel3
+        run: |
+          AK3_URL=$(echo "aHR0cHM6Ly9naXRodWIuY29tL29zbTBzaXMvQW55S2VybmVsMy5naXQ=" | base64 -d)
+          git clone --depth=1 "$AK3_URL" AnyKernel3
+          cp out/arch/arm64/boot/Image.gz-dtb AnyKernel3/ 2>/dev/null || cp out/arch/arm64/boot/Image.gz AnyKernel3/ 2>/dev/null || cp out/arch/arm64/boot/Image AnyKernel3/
+          cp out/arch/arm64/boot/dtbo.img AnyKernel3/ 2>/dev/null || true
+          cd AnyKernel3
+          zip -r9 ../Valeryn-SM6115-KSU-Next.zip * -x .git README.md *placeholder
+
+      - name: Upload Kernel Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Valeryn-SM6115-KSU-Next
+          path: Valeryn-SM6115-KSU-Next.zip
+          
